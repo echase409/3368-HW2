@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Controller implements Initializable {
 
@@ -39,7 +40,7 @@ public class Controller implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-
+        AtomicReference<String> errorLog = new AtomicReference<>("");
 /*        try{
             Connection conn = DriverManager.getConnection(AWS_URL);
 
@@ -61,6 +62,7 @@ public class Controller implements Initializable {
 
         // Performing Initial Data Load
         try {
+
             Connection conn = DriverManager.getConnection(AWS_URL);
 
             Statement stmt = conn.createStatement();
@@ -83,7 +85,7 @@ public class Controller implements Initializable {
             conn.close();
         }
         catch (Exception ex) {
-            System.out.println(ex.getMessage());
+            errorLog.set(errorLog + ex.getMessage() + "\n");
         }
 
         // Create new Student table if it doesn't already exist
@@ -131,11 +133,11 @@ public class Controller implements Initializable {
                 catch (Exception ex)
                 {
                     System.out.println("TABLE ALREADY EXISTS, NOT CREATED");
+                    errorLog.set(errorLog + ex.getMessage() + "\n");
                 }
             }
             catch (Exception ex) {
-                var msg = ex.getMessage();
-                System.out.println(msg);
+                errorLog.set(errorLog + ex.getMessage() + "\n");
             }
         });
 
@@ -174,9 +176,8 @@ public class Controller implements Initializable {
                 conn.close();
             }
             catch (Exception ex) {
-                var msg = ex.getMessage();
                 System.out.println("DATA NOT LOADED");
-                System.out.println(msg);
+                errorLog.set(errorLog + ex.getMessage() + "\n");
             }
         });
     }
