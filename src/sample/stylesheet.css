@@ -1,0 +1,65 @@
+* {
+    -fx-primary: #2a2e37;
+    -fx-secondary: #00ffcc;
+    -fx-primarytext: #f2f2f2;
+    -fx-prompttext: #737373;
+    -fx-errortext: #ff5050;
+    -fx-font-size: 14;
+}
+
+
+.root {
+    -fx-background-color: -fx-primary;
+    -fx-font-family: 'Work Sans', sans-serif;
+}
+
+.split-pane {
+    -fx-background-color: -fx-primary;
+}
+
+.jfx-list-view {
+    -fx-font-size: 14;
+    -fx-background-color: -fx-primarytext;
+    -fx-selection-bar: -fx-secondary;
+    -fx-selection-bar-non-focused: -fx-secondary;
+}
+
+.jfx-list-view:focused {
+    -fx-border-color: -fx-primarytext;
+}
+
+.jfx-list-cell .jfx-rippler {
+    -jfx-rippler-fill: #cccccc;
+}
+
+.jfx-radio-button {
+    -jfx-selected-color: -fx-secondary;
+    -jfx-unselected-color: -fx-primarytext;
+}
+
+.jfx-text-field {
+    -fx-prompt-text-fill: -fx-prompttext;
+    -fx-text-fill: -fx-primarytext;
+}
+
+.combo-box {
+    -fx-font-size: 14;
+    -fx-prompt-text-fill: -fx-prompttext;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: -fx-primarytext;
+}
+
+.combo-box .list-view .list-cell:selected {
+    -fx-background-color: -fx-secondary;
+}
+
+.combo-box .list-view .list-cell {
+    -fx-text-fill: black;
+    -fx-selection-bar: -fx-secondary;
+}
+
+.button:hover {
+    -fx-background-color: #373c48;
+}
