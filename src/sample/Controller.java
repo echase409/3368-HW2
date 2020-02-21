@@ -2,10 +2,15 @@ package sample;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXListView;
+import com.jfoenix.controls.JFXTextField;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -13,12 +18,26 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Controller implements Initializable {
 
     @FXML private JFXButton createTableButton;
     @FXML private JFXButton loadDataButton;
+    @FXML private JFXButton deleteTableButton;
     @FXML private JFXListView<Student> studentListView;
+    @FXML private JFXTextField firstNameTextField;
+    @FXML private JFXTextField lastNameTextField;
+    @FXML private JFXTextField ageTextField;
+    @FXML private JFXTextField majorTextField;
+    @FXML private JFXTextField gpaTextField;
+    @FXML private JFXButton addStudentButton;
+    @FXML private JFXButton updateStudentButton;
+    @FXML private JFXButton deleteStudentButton;
+    @FXML private VBox sideBar;
+    @FXML private HBox bottomBar;
+    @FXML private JFXButton filterButton;
+    @FXML private VBox filterContainer;
 
     final String hostname = "student-db.csyipcd3jqnc.us-east-1.rds.amazonaws.com";
     final String dbname = "student_db";
@@ -29,32 +48,28 @@ public class Controller implements Initializable {
 
     // Generates a random GPA between 1.00 and 4.00
     public float generateRandomGpa() {
-        return (float) ((float)(Math.random() * ((4.00 - 0.00) + 1)) + 0.00);
+        return (float) ((float)(Math.random() * ((3.00 - 1.50) + 1)) + 1.50);
     }
 
     // Generates a random age between 18 and 50
     public int generateRandomAge() {
-        return (int)(Math.random() * ((50 - 18) + 1)) + 18;
+        return (int)(Math.random() * ((24 - 18) + 1)) + 18;
+    }
+
+    public void clearFields() {
+        firstNameTextField.clear();
+        lastNameTextField.clear();
+        ageTextField.clear();
+        gpaTextField.clear();
+        majorTextField.clear();
     }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        bottomBar.setVisible(false);
+        filterContainer.setVisible(false);
+        AtomicInteger toggleCount = new AtomicInteger(0);
 
-/*        try{
-            Connection conn = DriverManager.getConnection(AWS_URL);
-
-            Statement stmt = conn.createStatement();
-            stmt.execute("DROP TABLE Student");
-            stmt.close();
-            conn.close();
-            System.out.println("TABLE DROPPED");
-        }
-        catch (Exception ex)
-        {
-            var msg = ex.getMessage();
-            System.out.println("TABLE NOT DROPPED");
-            System.out.println(msg);
-        }*/
         // Linking Database items to the ListView
         ObservableList<Student> dbStudentList = FXCollections.observableArrayList();
         studentListView.setItems(dbStudentList);
@@ -139,8 +154,28 @@ public class Controller implements Initializable {
             }
         });
 
+        // Delete Student Table if it exists
+        deleteTableButton.setOnAction(actionEvent -> {
+            try{
+                Connection conn = DriverManager.getConnection(AWS_URL);
+
+                Statement stmt = conn.createStatement();
+
+                stmt.execute("DROP TABLE Student");
+                stmt.close();
+                conn.close();
+                System.out.println("TABLE DROPPED");
+            }
+            catch (Exception ex)
+            {
+                System.out.println("TABLE NOT DROPPED");
+                System.out.println(ex.getMessage());
+            }
+        });
+
         // Fill the list with data from the database
         loadDataButton.setOnAction(actionEvent -> {
+            clearFields();
             try {
 
                 Connection conn = DriverManager.getConnection(AWS_URL);
@@ -178,6 +213,33 @@ public class Controller implements Initializable {
                 System.out.println("DATA NOT LOADED");
                 System.out.println(msg);
             }
+        });
+
+        // Method to populate fields with selected employee
+        studentListView.getSelectionModel().selectedItemProperty().addListener((
+                ObservableValue<? extends Student> ov, Student old_val, Student new_val)
+                -> {
+            clearFields();
+            if (!dbStudentList.isEmpty()) {
+                Student selectedItem = studentListView.getSelectionModel().getSelectedItem();
+                firstNameTextField.setText(((Student) selectedItem).getFName());
+                lastNameTextField.setText(((Student) selectedItem).getLName());
+                ageTextField.setText(String.valueOf(((Student) selectedItem).getAge()));
+                majorTextField.setText(((Student) selectedItem).getMajor());
+                gpaTextField.setText(String.valueOf(((Student) selectedItem).getGpa()));
+            } else {
+                deleteStudentButton.setDisable(true);
+            }
+        });
+
+        // Toggle Filter Button
+        filterButton.setOnAction(actionEvent -> {
+            if (toggleCount.get() % 2 == 0) {
+                filterContainer.setVisible(true);
+            } else {
+                filterContainer.setVisible(false);
+            }
+            toggleCount.set(toggleCount.get() + 1);
         });
     }
 }

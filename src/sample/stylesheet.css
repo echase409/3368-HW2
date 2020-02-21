@@ -1,3 +1,4 @@
+/*
 * {
     -fx-primary: #2a2e37;
     -fx-secondary: #00ffcc;
@@ -62,4 +63,10 @@
 
 .button:hover {
     -fx-background-color: #373c48;
+}*/
+
+#filter-button {
+    -fx-background-image: url('https://img.icons8.com/ios-filled/20/000000/filter.png');
+          -fx-background-repeat: no-repeat;
+          -fx-background-position: center;
 }
