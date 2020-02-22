@@ -1,6 +1,6 @@
 package sample;
-
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXListView;
 import com.jfoenix.controls.JFXTextField;
 import javafx.beans.value.ObservableValue;
@@ -10,7 +10,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -21,7 +20,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Controller implements Initializable {
-
     @FXML private JFXButton createTableButton;
     @FXML private JFXButton loadDataButton;
     @FXML private JFXButton deleteTableButton;
@@ -38,7 +36,16 @@ public class Controller implements Initializable {
     @FXML private HBox bottomBar;
     @FXML private JFXButton filterButton;
     @FXML private VBox filterContainer;
+    @FXML private JFXTextField minAgeTextField;
+    @FXML private JFXTextField maxAgeTextField;
+    @FXML private JFXTextField minGpaTextField;
+    @FXML private JFXTextField maxGpaTextField;
+    @FXML private JFXTextField majorFilterTextField;
+    @FXML private JFXComboBox<String> ageFilterSelection;
+    @FXML private JFXComboBox<String> gpaFilterSelection;
+    @FXML private JFXComboBox<String> majorFilterSelection;
 
+    // DB Stuff
     final String hostname = "student-db.csyipcd3jqnc.us-east-1.rds.amazonaws.com";
     final String dbname = "student_db";
     final String port = "3306";
@@ -64,11 +71,34 @@ public class Controller implements Initializable {
         majorTextField.clear();
     }
 
+    public void clearFilters() {
+        ageFilterSelection.getSelectionModel().selectFirst();
+        gpaFilterSelection.getSelectionModel().selectFirst();
+        majorFilterSelection.getSelectionModel().selectFirst();
+        minAgeTextField.clear();
+        maxAgeTextField.clear();
+        minGpaTextField.clear();
+        maxGpaTextField.clear();
+        majorFilterTextField.clear();
+        minAgeTextField.setVisible(false);
+        minGpaTextField.setVisible(false);
+    }
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         bottomBar.setVisible(false);
         filterContainer.setVisible(false);
         AtomicInteger toggleCount = new AtomicInteger(0);
+
+        ageFilterSelection.setItems(FXCollections.observableArrayList("-", "Equals", "Between", "Greater than", "Less than"));
+        gpaFilterSelection.setItems(FXCollections.observableArrayList("-", "Equals", "Between", "Greater than", "Less than"));
+        majorFilterSelection.setItems(FXCollections.observableArrayList("-", "Equals", "Contains", "Starts with", "Ends with"));
+        ageFilterSelection.getSelectionModel().selectFirst();
+        gpaFilterSelection.getSelectionModel().selectFirst();
+        majorFilterSelection.getSelectionModel().selectFirst();
+        minAgeTextField.setVisible(false);
+        minGpaTextField.setVisible(false);
+
 
         // Linking Database items to the ListView
         ObservableList<Student> dbStudentList = FXCollections.observableArrayList();
@@ -80,7 +110,7 @@ public class Controller implements Initializable {
 
             Statement stmt = conn.createStatement();
 
-            String sqlStatement = "SELECT FirstName, LastName, Id, Age, Major, GPA FROM Student";
+            String sqlStatement = "SELECT * FROM Student";
             ResultSet result = stmt.executeQuery(sqlStatement);
 
             while (result.next()) {
@@ -108,6 +138,7 @@ public class Controller implements Initializable {
                 Connection conn = DriverManager.getConnection(AWS_URL);
 
                 Statement stmt = conn.createStatement();
+
 
                 try {
                     stmt.execute("CREATE TABLE Student (" +
@@ -165,6 +196,14 @@ public class Controller implements Initializable {
                 stmt.close();
                 conn.close();
                 System.out.println("TABLE DROPPED");
+
+                if (dbStudentList.size() > 0) {
+                    int dbSize = dbStudentList.size();
+                    for (int i = 0; i < dbSize; i++) {
+                        dbStudentList.remove(0);
+                    }
+                }
+                clearFields();
             }
             catch (Exception ex)
             {
@@ -189,7 +228,54 @@ public class Controller implements Initializable {
                     }
                 }
 
-                String sqlStatement = "SELECT FirstName, LastName, Id, Age, Major, GPA FROM Student";
+                String sqlStatement = "SELECT * FROM Student";
+
+                if ( (toggleCount.get() % 2 != 0) && (!minAgeTextField.getText().isEmpty() || !maxAgeTextField.getText().isEmpty() || !minGpaTextField.getText().isEmpty()
+                        || !maxGpaTextField.getText().isEmpty() || !majorFilterTextField.getText().isEmpty()) ) { // Filters exist
+                    sqlStatement = sqlStatement + " WHERE 1=1";
+                    // Grabbing Age filter criteria (if any)
+                    int filterChoice = ageFilterSelection.getSelectionModel().getSelectedIndex();
+                    switch (filterChoice) {
+                        case 1: sqlStatement = sqlStatement + " AND Age=" + maxAgeTextField.getText();
+                                break;
+                        case 2: sqlStatement = sqlStatement + " AND Age BETWEEN " + minAgeTextField.getText() + " AND " + maxAgeTextField.getText();
+                                break;
+                        case 3: sqlStatement = sqlStatement + " AND Age > " + maxAgeTextField.getText();
+                                break;
+                        case 4: sqlStatement = sqlStatement + " AND Age < " + maxAgeTextField.getText();
+                                break;
+                        default: break;
+                    }
+
+                    // Grabbing GPA filter criteria (if any)
+                    filterChoice = gpaFilterSelection.getSelectionModel().getSelectedIndex();
+                    switch (filterChoice) {
+                        case 1: sqlStatement = sqlStatement + " AND GPA=" + maxGpaTextField.getText();
+                            break;
+                        case 2: sqlStatement = sqlStatement + " AND GPA BETWEEN " + minGpaTextField.getText() + " AND " + maxGpaTextField.getText();
+                            break;
+                        case 3: sqlStatement = sqlStatement + " AND GPA > " + maxGpaTextField.getText();
+                            break;
+                        case 4: sqlStatement = sqlStatement + " AND GPA < " + maxGpaTextField.getText();
+                            break;
+                        default: break;
+                    }
+
+                    // Grabbing Major filter criteria (if any)
+                    filterChoice = majorFilterSelection.getSelectionModel().getSelectedIndex();
+                    switch (filterChoice) {
+                        case 1: sqlStatement = sqlStatement + " AND Major='" + majorFilterTextField.getText() + "'";
+                            break;
+                        case 2: sqlStatement = sqlStatement + " AND Major LIKE '%" + majorFilterTextField.getText() + "%'";
+                            break;
+                        case 3: sqlStatement = sqlStatement + " AND Major LIKE '" + majorFilterTextField.getText() + "%'";
+                            break;
+                        case 4: sqlStatement = sqlStatement + " AND GPA Major LIKE '%" + majorFilterTextField.getText() + "'";
+                            break;
+                        default: break;
+                    }
+                }
+
                 ResultSet result = stmt.executeQuery(sqlStatement);
 
                 while (result.next()) {
@@ -238,8 +324,29 @@ public class Controller implements Initializable {
                 filterContainer.setVisible(true);
             } else {
                 filterContainer.setVisible(false);
+                clearFilters();
             }
             toggleCount.set(toggleCount.get() + 1);
+        });
+
+        ageFilterSelection.setOnAction(actionEvent -> {
+            if (ageFilterSelection.getSelectionModel().getSelectedIndex() == 2) {
+                minAgeTextField.setVisible(true);
+                maxAgeTextField.setPromptText("Max");
+            } else {
+                minAgeTextField.setVisible(false);
+                maxAgeTextField.setPromptText("");
+            }
+        });
+
+        gpaFilterSelection.setOnAction(actionEvent -> {
+            if (gpaFilterSelection.getSelectionModel().getSelectedIndex() == 2) {
+                minGpaTextField.setVisible(true);
+                maxGpaTextField.setPromptText("Max");
+            } else {
+                minGpaTextField.setVisible(false);
+                maxGpaTextField.setPromptText("");
+            }
         });
     }
 }
