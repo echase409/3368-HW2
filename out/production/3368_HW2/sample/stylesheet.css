@@ -70,3 +70,10 @@
           -fx-background-repeat: no-repeat;
           -fx-background-position: center;
 }
+
+/*.split-pane-divider {
+   -fx-background-color: transparent;
+}*/
+
+/*
+-jfx-rippler-disabled: true;*/
