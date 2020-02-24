@@ -3,18 +3,18 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXListView;
 import com.jfoenix.controls.JFXTextField;
+import com.jfoenix.validation.NumberValidator;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.ToolBar;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,6 +23,7 @@ public class Controller implements Initializable {
     @FXML private JFXButton createTableButton;
     @FXML private JFXButton loadDataButton;
     @FXML private JFXButton deleteTableButton;
+    @FXML private ToolBar toolbar;
     @FXML private JFXListView<Student> studentListView;
     @FXML private JFXTextField firstNameTextField;
     @FXML private JFXTextField lastNameTextField;
@@ -32,8 +33,15 @@ public class Controller implements Initializable {
     @FXML private JFXButton addStudentButton;
     @FXML private JFXButton updateStudentButton;
     @FXML private JFXButton deleteStudentButton;
+    @FXML private JFXButton confirmButton;
+    @FXML private JFXButton clearButton;
+    @FXML private JFXButton cancelButton;
+    @FXML private JFXButton yesButton;
+    @FXML private JFXButton noButton;
+    @FXML private AnchorPane topHalf;
     @FXML private VBox sideBar;
     @FXML private HBox bottomBar;
+    @FXML private HBox bottomBar2;
     @FXML private JFXButton filterButton;
     @FXML private VBox filterContainer;
     @FXML private JFXTextField minAgeTextField;
@@ -44,6 +52,10 @@ public class Controller implements Initializable {
     @FXML private JFXComboBox<String> ageFilterSelection;
     @FXML private JFXComboBox<String> gpaFilterSelection;
     @FXML private JFXComboBox<String> majorFilterSelection;
+    @FXML private NumberValidator minAgeFilterValidation;
+    @FXML private NumberValidator maxAgeFilterValidation;
+    @FXML private NumberValidator minGpaFilterValidation;
+    @FXML private NumberValidator maxGpaFilterValidation;
 
     // DB Stuff
     final String hostname = "student-db.csyipcd3jqnc.us-east-1.rds.amazonaws.com";
@@ -84,10 +96,39 @@ public class Controller implements Initializable {
         minGpaTextField.setVisible(false);
     }
 
+    public void disable() {
+        sideBar.setDisable(true);
+        bottomBar.setVisible(false);
+        deleteTableButton.setDisable(true);
+        loadDataButton.setDisable(true);
+        filterButton.setDisable(true);
+        filterContainer.setVisible(false);
+        firstNameTextField.setDisable(true);
+        lastNameTextField.setDisable(true);
+        ageTextField.setDisable(true);
+        gpaTextField.setDisable(true);
+        majorTextField.setDisable(true);
+    }
+
+    public void enable() {
+        addStudentButton.setDisable(false);
+        updateStudentButton.setDisable(false);
+        deleteStudentButton.setDisable(false);
+        deleteTableButton.setDisable(false);
+        loadDataButton.setDisable(false);
+        filterButton.setDisable(false);
+        firstNameTextField.setDisable(false);
+        lastNameTextField.setDisable(false);
+        ageTextField.setDisable(false);
+        gpaTextField.setDisable(false);
+        majorTextField.setDisable(false);
+    }
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         bottomBar.setVisible(false);
         filterContainer.setVisible(false);
+        bottomBar2.setVisible(false);
         AtomicInteger toggleCount = new AtomicInteger(0);
 
         ageFilterSelection.setItems(FXCollections.observableArrayList("-", "Equals", "Between", "Greater than", "Less than"));
@@ -98,7 +139,10 @@ public class Controller implements Initializable {
         majorFilterSelection.getSelectionModel().selectFirst();
         minAgeTextField.setVisible(false);
         minGpaTextField.setVisible(false);
-
+        minAgeTextField.getValidators().add(minAgeFilterValidation);
+        maxAgeTextField.getValidators().add(maxAgeFilterValidation);
+        minGpaTextField.getValidators().add(minGpaFilterValidation);
+        maxGpaTextField.getValidators().add(maxGpaFilterValidation);
 
         // Linking Database items to the ListView
         ObservableList<Student> dbStudentList = FXCollections.observableArrayList();
@@ -129,6 +173,15 @@ public class Controller implements Initializable {
         }
         catch (Exception ex) {
             System.out.println(ex.getMessage());
+            topHalf.setDisable(true);
+            sideBar.setDisable(true);
+            deleteTableButton.setDisable(true);
+            loadDataButton.setDisable(true);
+            firstNameTextField.setDisable(true);
+            lastNameTextField.setDisable(true);
+            ageTextField.setDisable(true);
+            gpaTextField.setDisable(true);
+            majorTextField.setDisable(true);
         }
 
         // Create new Student table if it doesn't already exist
@@ -170,7 +223,15 @@ public class Controller implements Initializable {
                     }
 
                     System.out.println("TABLE FILLED");
-
+                    topHalf.setDisable(false);
+                    sideBar.setDisable(false);
+                    deleteTableButton.setDisable(false);
+                    loadDataButton.setDisable(false);
+                    firstNameTextField.setDisable(false);
+                    lastNameTextField.setDisable(false);
+                    ageTextField.setDisable(false);
+                    gpaTextField.setDisable(false);
+                    majorTextField.setDisable(false);
                     stmt.close();
                     conn.close();
                 }
@@ -180,8 +241,7 @@ public class Controller implements Initializable {
                 }
             }
             catch (Exception ex) {
-                var msg = ex.getMessage();
-                System.out.println(msg);
+                System.out.println(ex.getMessage());
             }
         });
 
@@ -204,6 +264,17 @@ public class Controller implements Initializable {
                     }
                 }
                 clearFields();
+                topHalf.setDisable(true);
+                sideBar.setDisable(true);
+                deleteTableButton.setDisable(true);
+                loadDataButton.setDisable(true);
+                firstNameTextField.setDisable(true);
+                lastNameTextField.setDisable(true);
+                ageTextField.setDisable(true);
+                gpaTextField.setDisable(true);
+                majorTextField.setDisable(true);
+                filterContainer.setVisible(false);
+                toggleCount.set(0);
             }
             catch (Exception ex)
             {
@@ -293,15 +364,16 @@ public class Controller implements Initializable {
 
                 stmt.close();
                 conn.close();
+                studentListView.getSelectionModel().selectFirst();
+                studentListView.requestFocus();
             }
             catch (Exception ex) {
-                var msg = ex.getMessage();
                 System.out.println("DATA NOT LOADED");
-                System.out.println(msg);
+                System.out.println(ex.getMessage());
             }
         });
 
-        // Method to populate fields with selected employee
+        // Method to populate fields with selected student
         studentListView.getSelectionModel().selectedItemProperty().addListener((
                 ObservableValue<? extends Student> ov, Student old_val, Student new_val)
                 -> {
@@ -333,9 +405,11 @@ public class Controller implements Initializable {
             if (ageFilterSelection.getSelectionModel().getSelectedIndex() == 2) {
                 minAgeTextField.setVisible(true);
                 maxAgeTextField.setPromptText("Max");
+                /*maxAgeFilterValidation.setDisable(false);*/
             } else {
                 minAgeTextField.setVisible(false);
                 maxAgeTextField.setPromptText("");
+                /*maxAgeFilterValidation.setDisable(true);*/
             }
         });
 
@@ -343,10 +417,143 @@ public class Controller implements Initializable {
             if (gpaFilterSelection.getSelectionModel().getSelectedIndex() == 2) {
                 minGpaTextField.setVisible(true);
                 maxGpaTextField.setPromptText("Max");
+                maxGpaFilterValidation.setDisable(false);
             } else {
                 minGpaTextField.setVisible(false);
                 maxGpaTextField.setPromptText("");
+                maxGpaFilterValidation.setDisable(true);
             }
+        });
+
+        minAgeTextField.setOnKeyReleased(e -> {
+            if (!minAgeTextField.getText().equals(""))
+                minAgeTextField.validate();
+        });
+
+        maxAgeTextField.setOnKeyReleased(e -> {
+            maxAgeFilterValidation.setDisable(true);
+            if (!maxAgeTextField.getText().equals(""))
+                /*maxAgeFilterValidation.setDisable(false);*/
+                maxAgeTextField.validate();
+        });
+
+        addStudentButton.setOnAction(actionEvent -> {
+            clearFields();
+            topHalf.setDisable(true);
+            sideBar.setDisable(true);
+            toolbar.setDisable(true);
+            bottomBar.setVisible(true);
+            firstNameTextField.requestFocus();
+        });
+
+        confirmButton.setOnAction(actionEvent -> {
+            try {
+                Connection conn = DriverManager.getConnection(AWS_URL);
+                Statement stmt = conn.createStatement();
+
+                String idString = UUID.randomUUID().toString();
+                String sql = "INSERT INTO Student VALUES" +
+                        "('" + firstNameTextField.getText() + "', '" + lastNameTextField.getText() +"', " +
+                        "'" + idString +"', '" + ageTextField.getText() + "', " +
+                        "'" + majorTextField.getText() + "', '" + gpaTextField.getText() + "')";
+                stmt.executeUpdate(sql);
+
+                System.out.println("STUDENT ADDED");
+                topHalf.setDisable(false);
+                sideBar.setDisable(false);
+                toolbar.setDisable(false);
+                bottomBar.setVisible(false);
+            } catch (Exception ex) {
+                System.out.println("FAILED TO ADD");
+                System.out.println(ex.getMessage());
+            }
+            clearFields();
+            bottomBar.setVisible(false);
+        });
+
+        clearButton.setOnAction(actionEvent -> {
+            clearFields();
+        });
+
+        cancelButton.setOnAction(actionEvent -> {
+            topHalf.setDisable(false);
+            sideBar.setDisable(false);
+            toolbar.setDisable(false);
+            bottomBar.setVisible(false);
+            clearFields();
+        });
+
+        updateStudentButton.setOnAction(actionEvent -> {
+            if (studentListView.getSelectionModel().getSelectedItem() != null) {
+                try {
+                    Connection conn = DriverManager.getConnection(AWS_URL);
+                    Statement stmt = conn.createStatement();
+
+                    String sql = "UPDATE Student\n" +
+                            "SET FirstName='" + firstNameTextField.getText() +
+                            "', LastName='" + lastNameTextField.getText() +
+                            "', Age=" + ageTextField.getText() +
+                            ", Major='" + majorTextField.getText() +
+                            "', GPA=" + gpaTextField.getText() + "\n" +
+                            "WHERE Id='" + studentListView.getSelectionModel().getSelectedItem().getId().toString() + "';";
+                    stmt.executeUpdate(sql);
+                    System.out.println("STUDENT UPDATED");
+                } catch (Exception ex) {
+                    System.out.println("FAILED TO UPDATE");
+                    System.out.println(ex.getMessage());
+                }
+            }
+        });
+
+        deleteStudentButton.setOnAction(actionEvent -> {
+            if (studentListView.getSelectionModel().getSelectedItem() != null) {
+                bottomBar2.setVisible(true);
+                topHalf.setDisable(true);
+                toolbar.setDisable(true);
+                sideBar.setDisable(true);
+                firstNameTextField.setDisable(true);
+                lastNameTextField.setDisable(true);
+                ageTextField.setDisable(true);
+                gpaTextField.setDisable(true);
+                majorTextField.setDisable(true);
+            }
+        });
+
+        yesButton.setOnAction(actionEvent -> {
+            try {
+                Connection conn = DriverManager.getConnection(AWS_URL);
+                Statement stmt = conn.createStatement();
+
+                String sql = "DELETE FROM Student WHERE Id='" + studentListView.getSelectionModel().getSelectedItem().getId().toString() + "';";
+                stmt.executeUpdate(sql);
+
+                System.out.println("STUDENT DELETED");
+
+                bottomBar2.setVisible(false);
+                topHalf.setDisable(false);
+                toolbar.setDisable(false);
+                sideBar.setDisable(false);
+                firstNameTextField.setDisable(false);
+                lastNameTextField.setDisable(false);
+                ageTextField.setDisable(false);
+                gpaTextField.setDisable(false);
+                majorTextField.setDisable(false);
+            } catch (Exception ex) {
+                System.out.println("FAILED TO DELETE");
+                System.out.println(ex.getMessage());
+            }
+        });
+
+        noButton.setOnAction(actionEvent -> {
+            bottomBar2.setVisible(false);
+            topHalf.setDisable(false);
+            toolbar.setDisable(false);
+            sideBar.setDisable(false);
+            firstNameTextField.setDisable(false);
+            lastNameTextField.setDisable(false);
+            ageTextField.setDisable(false);
+            gpaTextField.setDisable(false);
+            majorTextField.setDisable(false);
         });
     }
 }
