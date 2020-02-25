@@ -4,6 +4,7 @@ import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXListView;
 import com.jfoenix.controls.JFXTextField;
 import com.jfoenix.validation.NumberValidator;
+import com.jfoenix.validation.RegexValidator;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -56,6 +57,14 @@ public class Controller implements Initializable {
     @FXML private NumberValidator maxAgeFilterValidation;
     @FXML private NumberValidator minGpaFilterValidation;
     @FXML private NumberValidator maxGpaFilterValidation;
+    @FXML private RegexValidator majorFilterValidation;
+    @FXML private JFXButton clearFiltersButton;
+    @FXML private RegexValidator firstNameValidation;
+    @FXML private RegexValidator lastNameValidation;
+    @FXML private RegexValidator majorValidation;
+    @FXML private NumberValidator ageValidation;
+    @FXML private NumberValidator gpaValidation;
+
 
     // DB Stuff
     final String hostname = "student-db.csyipcd3jqnc.us-east-1.rds.amazonaws.com";
@@ -96,38 +105,11 @@ public class Controller implements Initializable {
         minGpaTextField.setVisible(false);
     }
 
-    public void disable() {
-        sideBar.setDisable(true);
-        bottomBar.setVisible(false);
-        deleteTableButton.setDisable(true);
-        loadDataButton.setDisable(true);
-        filterButton.setDisable(true);
-        filterContainer.setVisible(false);
-        firstNameTextField.setDisable(true);
-        lastNameTextField.setDisable(true);
-        ageTextField.setDisable(true);
-        gpaTextField.setDisable(true);
-        majorTextField.setDisable(true);
-    }
-
-    public void enable() {
-        addStudentButton.setDisable(false);
-        updateStudentButton.setDisable(false);
-        deleteStudentButton.setDisable(false);
-        deleteTableButton.setDisable(false);
-        loadDataButton.setDisable(false);
-        filterButton.setDisable(false);
-        firstNameTextField.setDisable(false);
-        lastNameTextField.setDisable(false);
-        ageTextField.setDisable(false);
-        gpaTextField.setDisable(false);
-        majorTextField.setDisable(false);
-    }
-
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         bottomBar.setVisible(false);
         filterContainer.setVisible(false);
+        clearFiltersButton.setVisible(false);
         bottomBar2.setVisible(false);
         AtomicInteger toggleCount = new AtomicInteger(0);
 
@@ -143,10 +125,38 @@ public class Controller implements Initializable {
         maxAgeTextField.getValidators().add(maxAgeFilterValidation);
         minGpaTextField.getValidators().add(minGpaFilterValidation);
         maxGpaTextField.getValidators().add(maxGpaFilterValidation);
+        majorFilterTextField.getValidators().add(majorFilterValidation);
+        firstNameTextField.getValidators().add(firstNameValidation);
+        lastNameTextField.getValidators().add(lastNameValidation);
+        ageTextField.getValidators().add(ageValidation);
+        gpaTextField.getValidators().add(gpaValidation);
+        majorTextField.getValidators().add(majorValidation);
 
         // Linking Database items to the ListView
         ObservableList<Student> dbStudentList = FXCollections.observableArrayList();
         studentListView.setItems(dbStudentList);
+
+        // Method to populate fields with selected student
+        studentListView.getSelectionModel().selectedItemProperty().addListener((
+                ObservableValue<? extends Student> ov, Student old_val, Student new_val)
+                -> {
+            clearFields();
+            firstNameTextField.setLabelFloat(false);
+            deleteStudentButton.setDisable(false);
+            filterButton.setDisable(false);
+            if (!dbStudentList.isEmpty()) {
+                Student selectedItem = studentListView.getSelectionModel().getSelectedItem();
+                firstNameTextField.setText(((Student) selectedItem).getFName());
+                lastNameTextField.setText(((Student) selectedItem).getLName());
+                ageTextField.setText(String.valueOf(((Student) selectedItem).getAge()));
+                majorTextField.setText(((Student) selectedItem).getMajor());
+                gpaTextField.setText(String.valueOf(((Student) selectedItem).getGpa()));
+            } else {
+                deleteStudentButton.setDisable(true);
+                filterButton.setDisable(true);
+            }
+            firstNameTextField.setLabelFloat(true);
+        });
 
         // Performing Initial Data Load
         try {
@@ -167,9 +177,9 @@ public class Controller implements Initializable {
                 student.setGpa(Float.parseFloat(result.getString("GPA")));
                 dbStudentList.add(student);
             }
-
             stmt.close();
             conn.close();
+            createTableButton.setDisable(true);
         }
         catch (Exception ex) {
             System.out.println(ex.getMessage());
@@ -182,6 +192,7 @@ public class Controller implements Initializable {
             ageTextField.setDisable(true);
             gpaTextField.setDisable(true);
             majorTextField.setDisable(true);
+            filterButton.setDisable(true);
         }
 
         // Create new Student table if it doesn't already exist
@@ -222,6 +233,8 @@ public class Controller implements Initializable {
                         stmt.executeUpdate(sql);
                     }
 
+                    stmt.close();
+                    conn.close();
                     System.out.println("TABLE FILLED");
                     topHalf.setDisable(false);
                     sideBar.setDisable(false);
@@ -232,8 +245,8 @@ public class Controller implements Initializable {
                     ageTextField.setDisable(false);
                     gpaTextField.setDisable(false);
                     majorTextField.setDisable(false);
-                    stmt.close();
-                    conn.close();
+                    loadDataButton.requestFocus();
+                    createTableButton.setDisable(true);
                 }
                 catch (Exception ex)
                 {
@@ -266,6 +279,7 @@ public class Controller implements Initializable {
                 clearFields();
                 topHalf.setDisable(true);
                 sideBar.setDisable(true);
+                createTableButton.setDisable(false);
                 deleteTableButton.setDisable(true);
                 loadDataButton.setDisable(true);
                 firstNameTextField.setDisable(true);
@@ -274,6 +288,7 @@ public class Controller implements Initializable {
                 gpaTextField.setDisable(true);
                 majorTextField.setDisable(true);
                 filterContainer.setVisible(false);
+                clearFiltersButton.setVisible(false);
                 toggleCount.set(0);
             }
             catch (Exception ex)
@@ -359,11 +374,9 @@ public class Controller implements Initializable {
                     student.setGpa(Float.parseFloat(result.getString("GPA")));
                     dbStudentList.add(student);
                 }
-
-                System.out.println("DATA LOADED");
-
                 stmt.close();
                 conn.close();
+                System.out.println("DATA LOADED");
                 studentListView.getSelectionModel().selectFirst();
                 studentListView.requestFocus();
             }
@@ -371,70 +384,6 @@ public class Controller implements Initializable {
                 System.out.println("DATA NOT LOADED");
                 System.out.println(ex.getMessage());
             }
-        });
-
-        // Method to populate fields with selected student
-        studentListView.getSelectionModel().selectedItemProperty().addListener((
-                ObservableValue<? extends Student> ov, Student old_val, Student new_val)
-                -> {
-            clearFields();
-            if (!dbStudentList.isEmpty()) {
-                Student selectedItem = studentListView.getSelectionModel().getSelectedItem();
-                firstNameTextField.setText(((Student) selectedItem).getFName());
-                lastNameTextField.setText(((Student) selectedItem).getLName());
-                ageTextField.setText(String.valueOf(((Student) selectedItem).getAge()));
-                majorTextField.setText(((Student) selectedItem).getMajor());
-                gpaTextField.setText(String.valueOf(((Student) selectedItem).getGpa()));
-            } else {
-                deleteStudentButton.setDisable(true);
-            }
-        });
-
-        // Toggle Filter Button
-        filterButton.setOnAction(actionEvent -> {
-            if (toggleCount.get() % 2 == 0) {
-                filterContainer.setVisible(true);
-            } else {
-                filterContainer.setVisible(false);
-                clearFilters();
-            }
-            toggleCount.set(toggleCount.get() + 1);
-        });
-
-        ageFilterSelection.setOnAction(actionEvent -> {
-            if (ageFilterSelection.getSelectionModel().getSelectedIndex() == 2) {
-                minAgeTextField.setVisible(true);
-                maxAgeTextField.setPromptText("Max");
-                /*maxAgeFilterValidation.setDisable(false);*/
-            } else {
-                minAgeTextField.setVisible(false);
-                maxAgeTextField.setPromptText("");
-                /*maxAgeFilterValidation.setDisable(true);*/
-            }
-        });
-
-        gpaFilterSelection.setOnAction(actionEvent -> {
-            if (gpaFilterSelection.getSelectionModel().getSelectedIndex() == 2) {
-                minGpaTextField.setVisible(true);
-                maxGpaTextField.setPromptText("Max");
-                maxGpaFilterValidation.setDisable(false);
-            } else {
-                minGpaTextField.setVisible(false);
-                maxGpaTextField.setPromptText("");
-                maxGpaFilterValidation.setDisable(true);
-            }
-        });
-
-        minAgeTextField.setOnKeyReleased(e -> {
-            if (!minAgeTextField.getText().equals(""))
-                minAgeTextField.validate();
-        });
-
-        maxAgeTextField.setOnKeyReleased(e -> {
-            maxAgeFilterValidation.setDisable(true);
-            if (!maxAgeTextField.getText().equals(""))
-                /*maxAgeFilterValidation.setDisable(false);*/
-                maxAgeTextField.validate();
         });
 
         addStudentButton.setOnAction(actionEvent -> {
@@ -457,12 +406,15 @@ public class Controller implements Initializable {
                         "'" + idString +"', '" + ageTextField.getText() + "', " +
                         "'" + majorTextField.getText() + "', '" + gpaTextField.getText() + "')";
                 stmt.executeUpdate(sql);
+                conn.close();
+                stmt.close();
 
                 System.out.println("STUDENT ADDED");
                 topHalf.setDisable(false);
                 sideBar.setDisable(false);
                 toolbar.setDisable(false);
                 bottomBar.setVisible(false);
+                loadDataButton.requestFocus();
             } catch (Exception ex) {
                 System.out.println("FAILED TO ADD");
                 System.out.println(ex.getMessage());
@@ -473,6 +425,12 @@ public class Controller implements Initializable {
 
         clearButton.setOnAction(actionEvent -> {
             clearFields();
+            firstNameTextField.resetValidation();
+            lastNameTextField.resetValidation();
+            ageTextField.resetValidation();
+            gpaTextField.resetValidation();
+            majorTextField.resetValidation();
+            confirmButton.setDisable(false);
         });
 
         cancelButton.setOnAction(actionEvent -> {
@@ -481,6 +439,27 @@ public class Controller implements Initializable {
             toolbar.setDisable(false);
             bottomBar.setVisible(false);
             clearFields();
+            firstNameTextField.resetValidation();
+            lastNameTextField.resetValidation();
+            ageTextField.resetValidation();
+            gpaTextField.resetValidation();
+            majorTextField.resetValidation();
+            confirmButton.setDisable(false);
+            // Label floats for jfx text fields are bugged so these next few lines correct that
+            if (!dbStudentList.isEmpty()) {
+                firstNameTextField.requestFocus();
+                firstNameTextField.setText(studentListView.getSelectionModel().getSelectedItem().getFName());
+                lastNameTextField.requestFocus();
+                lastNameTextField.setText(studentListView.getSelectionModel().getSelectedItem().getLName());
+                ageTextField.requestFocus();
+                ageTextField.setText(String.valueOf(studentListView.getSelectionModel().getSelectedItem().getAge()));
+                gpaTextField.requestFocus();
+                gpaTextField.setText(String.valueOf(studentListView.getSelectionModel().getSelectedItem().getGpa()));
+                majorTextField.requestFocus();
+                majorTextField.setText(studentListView.getSelectionModel().getSelectedItem().getMajor());
+                studentListView.requestFocus();
+                studentListView.getSelectionModel().selectFirst();
+            }
         });
 
         updateStudentButton.setOnAction(actionEvent -> {
@@ -497,7 +476,10 @@ public class Controller implements Initializable {
                             "', GPA=" + gpaTextField.getText() + "\n" +
                             "WHERE Id='" + studentListView.getSelectionModel().getSelectedItem().getId().toString() + "';";
                     stmt.executeUpdate(sql);
+                    conn.close();
+                    stmt.close();
                     System.out.println("STUDENT UPDATED");
+                    loadDataButton.requestFocus();
                 } catch (Exception ex) {
                     System.out.println("FAILED TO UPDATE");
                     System.out.println(ex.getMessage());
@@ -527,6 +509,9 @@ public class Controller implements Initializable {
                 String sql = "DELETE FROM Student WHERE Id='" + studentListView.getSelectionModel().getSelectedItem().getId().toString() + "';";
                 stmt.executeUpdate(sql);
 
+                conn.close();
+                stmt.close();
+
                 System.out.println("STUDENT DELETED");
 
                 bottomBar2.setVisible(false);
@@ -538,6 +523,7 @@ public class Controller implements Initializable {
                 ageTextField.setDisable(false);
                 gpaTextField.setDisable(false);
                 majorTextField.setDisable(false);
+                loadDataButton.requestFocus();
             } catch (Exception ex) {
                 System.out.println("FAILED TO DELETE");
                 System.out.println(ex.getMessage());
@@ -554,6 +540,163 @@ public class Controller implements Initializable {
             ageTextField.setDisable(false);
             gpaTextField.setDisable(false);
             majorTextField.setDisable(false);
+        });
+
+        // Filter Stuff
+        filterButton.setOnAction(actionEvent -> {
+            if (toggleCount.get() % 2 == 0) {
+                filterContainer.setVisible(true);
+                clearFiltersButton.setVisible(true);
+            } else {
+                filterContainer.setVisible(false);
+                clearFiltersButton.setVisible(false);
+                clearFilters();
+            }
+            toggleCount.set(toggleCount.get() + 1);
+        });
+
+        clearFiltersButton.setOnAction(actionEvent -> {
+            clearFilters();
+        });
+
+        ageFilterSelection.setOnAction(actionEvent -> {
+            if (ageFilterSelection.getSelectionModel().getSelectedIndex() == 2) {
+                minAgeTextField.setVisible(true);
+                maxAgeTextField.setPromptText("Max");
+            } else {
+                minAgeTextField.setVisible(false);
+                maxAgeTextField.setPromptText("");
+            }
+        });
+
+        gpaFilterSelection.setOnAction(actionEvent -> {
+            if (gpaFilterSelection.getSelectionModel().getSelectedIndex() == 2) {
+                minGpaTextField.setVisible(true);
+                maxGpaTextField.setPromptText("Max");
+            } else {
+                minGpaTextField.setVisible(false);
+                maxGpaTextField.setPromptText("");
+            }
+        });
+
+        minAgeTextField.setOnKeyReleased(e -> {
+            loadDataButton.setDisable(false);
+            minAgeTextField.resetValidation();
+            if (!minAgeTextField.getText().equals("")) {
+                minAgeTextField.validate();
+                if (minAgeTextField.getActiveValidator() != null && minAgeTextField.getActiveValidator().getHasErrors()) {
+                    loadDataButton.setDisable(true);
+                }
+            }
+        });
+
+        maxAgeTextField.setOnKeyReleased(e -> {
+            loadDataButton.setDisable(false);
+            maxAgeTextField.resetValidation();
+            if (!maxAgeTextField.getText().equals("")) {
+                maxAgeTextField.validate();
+                if (maxAgeTextField.getActiveValidator() != null && maxAgeTextField.getActiveValidator().getHasErrors()) {
+                    loadDataButton.setDisable(true);
+                }
+            }
+        });
+
+        minGpaTextField.setOnKeyReleased(e -> {
+            loadDataButton.setDisable(false);
+            minGpaTextField.resetValidation();
+            if (!minGpaTextField.getText().equals("")) {
+                minGpaTextField.validate();
+                if (minGpaTextField.getActiveValidator() != null && minGpaTextField.getActiveValidator().getHasErrors()) {
+                    loadDataButton.setDisable(true);
+                }
+            }
+        });
+
+        maxGpaTextField.setOnKeyReleased(e -> {
+            loadDataButton.setDisable(false);
+            maxGpaTextField.resetValidation();
+            if (!maxGpaTextField.getText().equals("")) {
+                maxGpaTextField.validate();
+                if (maxGpaTextField.getActiveValidator() != null && maxGpaTextField.getActiveValidator().getHasErrors()) {
+                    loadDataButton.setDisable(true);
+                }
+            }
+        });
+
+        majorFilterTextField.setOnKeyReleased(e -> {
+            loadDataButton.setDisable(false);
+            majorFilterTextField.resetValidation();
+            if (!majorFilterTextField.getText().equals("")) {
+                majorFilterTextField.validate();
+                if (majorFilterTextField.getActiveValidator() != null && majorFilterTextField.getActiveValidator().getHasErrors()) {
+                    loadDataButton.setDisable(true);
+                }
+            }
+        });
+
+        firstNameTextField.setOnKeyReleased(e -> {
+            confirmButton.setDisable(false);
+            updateStudentButton.setDisable(false);
+            firstNameTextField.resetValidation();
+            if (!firstNameTextField.getText().equals("")) {
+                firstNameTextField.validate();
+                if (firstNameTextField.getActiveValidator() != null && firstNameTextField.getActiveValidator().getHasErrors()) {
+                    confirmButton.setDisable(true);
+                    updateStudentButton.setDisable(true);
+                }
+            }
+        });
+
+        lastNameTextField.setOnKeyReleased(e -> {
+            confirmButton.setDisable(false);
+            updateStudentButton.setDisable(false);
+            lastNameTextField.resetValidation();
+            if (!lastNameTextField.getText().equals("")) {
+                lastNameTextField.validate();
+                if (lastNameTextField.getActiveValidator() != null && lastNameTextField.getActiveValidator().getHasErrors()) {
+                    confirmButton.setDisable(true);
+                    updateStudentButton.setDisable(true);
+                }
+            }
+        });
+
+        majorTextField.setOnKeyReleased(e -> {
+            confirmButton.setDisable(false);
+            updateStudentButton.setDisable(false);
+            majorTextField.resetValidation();
+            if (!majorTextField.getText().equals("")) {
+                majorTextField.validate();
+                if (majorTextField.getActiveValidator() != null && majorTextField.getActiveValidator().getHasErrors()) {
+                    confirmButton.setDisable(true);
+                    updateStudentButton.setDisable(true);
+                }
+            }
+        });
+
+        ageTextField.setOnKeyReleased(e -> {
+            confirmButton.setDisable(false);
+            updateStudentButton.setDisable(false);
+            ageTextField.resetValidation();
+            if (!ageTextField.getText().equals("")) {
+                ageTextField.validate();
+                if (ageTextField.getActiveValidator() != null && ageTextField.getActiveValidator().getHasErrors()) {
+                    confirmButton.setDisable(true);
+                    updateStudentButton.setDisable(true);
+                }
+            }
+        });
+
+        gpaTextField.setOnKeyReleased(e -> {
+            confirmButton.setDisable(false);
+            updateStudentButton.setDisable(false);
+            gpaTextField.resetValidation();
+            if (!gpaTextField.getText().equals("")) {
+                gpaTextField.validate();
+                if (gpaTextField.getActiveValidator() != null && gpaTextField.getActiveValidator().getHasErrors()) {
+                    confirmButton.setDisable(true);
+                    updateStudentButton.setDisable(true);
+                }
+            }
         });
     }
 }
